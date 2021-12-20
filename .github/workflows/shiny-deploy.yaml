@@ -23,6 +23,11 @@ jobs:
         with:
           use-public-rspm: true
 
+      - name: Temp install RCurl
+        run: |
+          install.packages('RCurl', repos='https://cloud.r-project.org')
+        shell: Rscript {0}
+
       - uses: r-lib/actions/setup-renv@v2
 
       - name: Install rsconnect
