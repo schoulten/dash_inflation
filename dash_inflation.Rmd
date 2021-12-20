@@ -1,0 +1,426 @@
+---
+title: "Diagnóstico da Inflação"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    source_code: NULL
+    social: menu
+    css: inst/css/styles.css
+    logo: inst/imgs/logo.png
+    favicon: inst/imgs/favicon.png
+    navbar:
+        - { icon: "home", href: "https://fortietwo.com/", align: right }
+        - { icon: "fa-github", href: "https://github.com/schoulten/", align: right }
+        - { icon: "fa-linkedin", href: "https://www.linkedin.com/in/schoulten/", align: right }
+        - { icon: "fa-at", href: "mailto:fernando@fortietwo.com", align: right }
+runtime: shiny
+---
+
+<script>
+$('.navbar-logo').wrap('<a href="https://fortietwo.com/" target=_blank>');
+</script>
+
+```{r global, include=FALSE}
+# Carregar pacotes
+library(shiny)
+library(ggplot2)
+library(readr)
+library(lubridate)
+library(dplyr)
+library(stringr)
+library(forcats)
+library(tidyr)
+library(scales)
+library(ggtext)
+library(tsibble)
+library(fabletools)
+library(feasts)
+library(Hmisc)
+
+# Carregar dados públicos previamente importados via pacotes
+tbl_inflation <- readr::read_rds("data/tbl_inflation.rds")
+
+# Objetos úteis na dashboard
+colors <- c(
+  blue   = "#282f6b",
+  red    = "#b22200",
+  yellow = "#eace3f",
+  green  = "#224f20",
+  purple = "#5f487c",
+  black  = "black"
+)
+```
+
+
+Row {.sidebar}
+-----------------------------------------------------------------------
+
+Ferramenta analítica para diagnosticar o comportamento histórico da inflação brasileira, medida pelos principais indicadores de conjuntura econômica.
+
+```{r inputs}
+# Cria input do tipo "lista de caixas de seleção" com índices de preços como opções
+# Objetivo: usuário pode escolher quaL indicador será exibido no gráfico
+shiny::selectInput(
+  inputId  = "variavel",
+  label    = shiny::strong("Indicador:"),
+  choices  = unique(tbl_inflation$variable),
+  selected = unique(tbl_inflation$variable)[1],
+  multiple = FALSE
+  )
+
+
+# Cria input do tipo "calendário" de seleção de data de início e fim
+# Objetivo: usar as datas selecionadas para filtrar amostra de dados utilizada no gráfico/cálculos
+shiny::dateRangeInput(
+  inputId   = "data",
+  label     = shiny::strong("Data inicial e final:"),
+  min       = min(tbl_inflation$date),
+  max       = max(tbl_inflation$date),
+  start     = min(tbl_inflation$date),
+  end       = max(tbl_inflation$date),
+  language  = "pt-BR",
+  separator = " - ",
+  format    = "mm/yyyy"
+  )
+
+
+# Cria input do tipo "campo numérico" para entrada de um ano para comparação
+# Objetivo: comparar medidas (mediana e IQR) com dados observados referente ao ano
+shiny::numericInput(
+  inputId = "ano",
+  label   = shiny::strong("Comparar com o ano:"),
+  value   = lubridate::year(max(tbl_inflation$date)),
+  min     = lubridate::year(min(tbl_inflation$date)),
+  max     = lubridate::year(max(tbl_inflation$date)),
+  step    = 1
+  )
+
+
+# Tratamento para atualizar o ano pré-selecionado no input$ano em resposta a uma
+# mudança da amostra de dados definida pelo usuário no input$data:
+# o objetivo é que quando o usuário diminui a amostra de dados, o ano de comparação
+# selecionado não fique fora dessa nova amostra e seja atualizado para um novo
+# valor o mais próximo possível dos valores extremos (anos) da nova amostra
+shiny::observeEvent(
+  eventExpr = input$data, # observa mudanças do usuário na amostra de dados
+  handlerExpr = {         # expressões que serão executadas quando input$data mudar
+    
+    data_inicial <- lubridate::year(input$data[1])
+    data_final <- lubridate::year(input$data[2])
+  
+    shiny::updateNumericInput(   # atualiza o valor de input$ano quando a mudança é detectada
+      inputId = "ano", 
+      value   = if(!input$ano %in% data_inicial:data_final & data_inicial > input$ano){
+        data_inicial
+        } else
+          if(!input$ano %in% data_inicial:data_final & data_final < input$ano){
+          data_final
+        } else input$ano,
+      min     = data_inicial,
+      max     = data_final,
+      step    = 1
+      )
+    
+    }
+  )
+
+
+# Cria input do tipo "lista de caixas de seleção" com componentes para filtragem
+shiny::checkboxGroupInput(
+  inputId  = "componentes",
+  label    = shiny::strong("Componentes:"),
+  choices  = c("% a.m.", "Tendência", "Sazonalidade", "Média"),
+  selected = c("% a.m.", "Tendência", "Média")
+  )
+```
+
+
+Dados: FGV e IBGE<br>
+Elaboração: Fernando da Silva
+
+
+Row
+-----------------------------------------------------------------------
+
+### Sazonalidade mensal {.no-title}
+
+```{r}
+# Gerar gráfico dinâmico (se atualiza conforme o input da sidebar)
+shiny::renderPlot({
+  
+  # Use a função req para exigir que os valores do inputs sejam informados pelo usuário,
+  # isso evita que o R execute o script "ansiosamente"
+  shiny::req(
+    input$data, 
+    input$ano %in% lubridate::year(input$data[1]):lubridate::year(input$data[2]), 
+    input$variavel
+    )
+  
+  
+  # Valores dos inputs salvos em objetos auxiliar, por conveniência
+  data_inicial <- lubridate::floor_date(input$data[1])
+  data_final <- lubridate::floor_date(input$data[2])
+  data_compara <- input$ano
+  indicador <- input$variavel
+  
+  
+  # Script para calcular padrão sazonal mensal conforme inputs do usuário: mediana e IQR
+  seas_pattern <- tbl_inflation %>%
+    dplyr::group_by(
+      variable,
+      date_m = lubridate::month(.data$date, label = TRUE, locale = "pt_BR.utf8") %>% 
+        stringr::str_to_sentence(locale = "br") %>%
+        forcats::as_factor()
+      ) %>%
+    dplyr::filter(date >= data_inicial & date <= data_final) %>%
+    dplyr::summarise(
+      iqr     = ggplot2::median_hilow(mom, conf.int = 0.5),
+      .groups = "drop"
+    ) %>%
+    tidyr::unnest(cols = iqr) %>% 
+    dplyr::rename("median" = "y", "date" = "date_m") %>% 
+    dplyr::left_join(
+      tbl_inflation %>%
+        dplyr::filter(
+          date >= data_inicial & date <= data_final,
+          lubridate::year(.data$date) == data_compara
+          ) %>% 
+        dplyr::mutate(
+          date = lubridate::month(.data$date, label = TRUE, locale = "pt_BR.utf8") %>% 
+            stringr::str_to_sentence(locale = "br") %>%
+            forcats::as_factor()
+          ),
+      by = c("variable", "date")
+      ) %>%
+    tidyr::pivot_longer(
+      cols      = -c(variable, date, ymin, ymax), 
+      names_to  = "measure", 
+      values_to = "value"
+      ) %>%
+    dplyr::mutate(
+      measure = dplyr::recode(
+        measure,
+        "median" = "Mediana",
+        "mom"    = as.character(data_compara)
+      )
+    ) %>% 
+    dplyr::filter(variable == indicador)
+  
+  
+  # Gerar gráfico dinâmico
+  seas_pattern %>%
+    ggplot2::ggplot() +
+    ggplot2::aes(x = date, y = value, color = measure, shape = measure, group = measure) +
+    ggplot2::geom_hline(yintercept = 0) +
+    ggplot2::geom_ribbon(
+      ggplot2::aes(
+        ymin = ymin,
+        ymax = ymax,
+        fill = "IQR (CI = 0,5)"
+      ),
+      alpha = 0.2,
+      color = NA
+    ) +
+    ggplot2::geom_line(size = 1.2) +
+    ggplot2::geom_point(size = 3) +
+    ggplot2::scale_color_manual(
+      NULL,
+      values = c(unname(colors["red"]), unname(colors["black"])),
+      guide = ggplot2::guide_legend(
+        override.aes = list(
+          shape = c(16, NA)
+          )
+        )
+      ) +
+    ggplot2::scale_fill_manual(
+      NULL,
+      values = c("IQR (CI = 0,5)" = unname(colors["black"]))
+    ) +
+    ggplot2::scale_shape_manual(
+      NULL,
+      values = c(16, NA)
+    ) +
+    ggplot2::scale_y_continuous(
+      breaks = scales::extended_breaks(n = 6),
+      labels = scales::label_number(decimal.mark = ",", accuracy = 0.01),
+      minor_breaks = NULL
+    ) +
+    ggplot2::labs(
+      title    = paste0("**", indicador, "**: padrão sazonal"),
+      subtitle = paste0(
+        "% a.m., ", 
+        paste0(
+          lubridate::year(data_inicial), 
+          "m", 
+          ifelse(
+            lubridate::month(data_inicial) < 10,
+            paste0("0", lubridate::month(data_inicial)),
+            lubridate::month(data_inicial)
+            ),
+          "-",
+          lubridate::year(data_final), 
+          "m", 
+          ifelse(
+            lubridate::month(data_final) < 10,
+            paste0("0", lubridate::month(data_final)),
+            lubridate::month(data_final)
+            )
+          )
+        ),
+      x        = NULL,
+      y        = NULL,
+      caption  = "**Dados:** FGV e IBGE | **Elaboração:** Fernando da Silva"
+    ) +
+    ggplot2::theme_light() +
+    ggplot2::theme(
+      legend.position   = "bottom",
+      legend.key        = ggplot2::element_blank(),
+      legend.key.width  = ggplot2::unit(1, "cm"),
+      legend.key.height = ggplot2::unit(0.5, "cm"),
+      legend.text       = ggplot2::element_text(size = 12),  
+      plot.title        = ggtext::element_markdown(size = 30, colour = colors["blue"]),
+      plot.subtitle     = ggplot2::element_text(size = 16),
+      plot.caption      = ggtext::element_markdown(size = 12),
+      axis.text         = ggplot2::element_text(size = 12), 
+      strip.background  = ggplot2::element_blank(), 
+      strip.text        = ggplot2::element_text(size = 12, face = "bold", colour = colors["black"])
+    )
+
+  
+})
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Componentes da série {.no-title}
+
+```{r}
+# Gerar gráfico dinâmico (se atualiza conforme o input da sidebar)
+shiny::renderPlot({
+  
+  # Use a função req para exigir que os valores do inputs sejam informados pelo usuário,
+  # isso evita que o R execute o script "ansiosamente"
+  shiny::req(input$data, input$variavel, input$componentes)
+  
+  
+  # Valores dos inputs salvos em objetos auxiliar, por conveniência
+  data_inicial <- lubridate::floor_date(input$data[1])
+  data_final <- lubridate::floor_date(input$data[2])
+  indicador <- input$variavel
+  componentes <- input$componentes
+  
+  
+  # Script para obter componentes da série e tratamento de dados
+  ts_components <- tbl_inflation %>% 
+    dplyr::filter(date >= data_inicial & date <= data_final) %>%
+    dplyr::mutate(date = tsibble::yearmonth(date)) %>%
+    tsibble::as_tsibble(index = date, key = variable) %>% 
+    fabletools::model(feasts::STL(mom, robust = TRUE)) %>%
+    fabletools::components() %>% 
+    dplyr::as_tibble() %>% 
+    dplyr::group_by(variable) %>% 
+    dplyr::mutate(
+      mean = mean(mom, na.rm = TRUE),
+      date = lubridate::as_date(.data$date)
+      ) %>% 
+    dplyr::select(-c(.data$`.model`, .data$`remainder`, .data$`season_adjust`)) %>% 
+    tidyr::pivot_longer(
+      cols      = -c(date, variable), 
+      names_to  = "measure",
+      values_to = "value"
+    ) %>% 
+    dplyr::mutate(
+      colors = dplyr::case_when(
+        measure == "mom" ~ unname(colors["black"]),
+        measure == "trend" ~ unname(colors["green"]),
+        measure == "season_year" ~ unname(colors["blue"]),
+        measure == "mean" ~ unname(colors["red"])
+        ),
+      measure = dplyr::case_when(
+        measure == "mom" ~ "% a.m.",
+        measure == "trend" ~ "Tendência",
+        measure == "season_year" ~ "Sazonalidade",
+        measure == "mean" ~ "Média"
+        ) %>% 
+        factor(levels = c("% a.m.", "Tendência", "Sazonalidade", "Média")),
+      ) %>%
+    dplyr::filter(variable == indicador, measure %in% componentes)
+  
+  
+  # Gerar gráfico dinâmico
+  ts_components %>% 
+    ggplot2::ggplot() +
+    ggplot2::aes(x = date, y = value, color = colors, group = measure) +
+    ggplot2::geom_hline(yintercept = 0, linetype = "dashed") +
+    ggplot2::geom_line(size = 1.2) +
+    ggplot2::scale_color_identity(
+      NULL,
+      aesthetics = "color", 
+      guide = "legend",
+      breaks = c(
+        unname(colors["black"]), 
+        unname(colors["red"]), 
+        unname(colors["blue"]), 
+        unname(colors["green"])
+        ),
+      labels = c(
+        "% a.m.",
+        "Média",
+        "Sazonalidade",
+        "Tendência"
+        )
+      ) +
+    ggplot2::scale_y_continuous(
+      breaks = scales::extended_breaks(n = 8),
+      labels = scales::label_number(decimal.mark = ",", accuracy = 0.01),
+      minor_breaks = NULL
+    ) + 
+    ggplot2::scale_x_date(
+      breaks = scales::breaks_width(width = "2 years"),
+      date_labels = "%Y",
+      minor_breaks = NULL
+    ) +
+    ggplot2::labs(
+      title    = paste0("**", indicador, "**: componentes da série"),
+      subtitle = paste0(
+        "% a.m., ", 
+        paste0(
+          lubridate::year(data_inicial), 
+          "m", 
+          ifelse(
+            lubridate::month(data_inicial) < 10,
+            paste0("0", lubridate::month(data_inicial)),
+            lubridate::month(data_inicial)
+            ),
+          "-",
+          lubridate::year(data_final), 
+          "m", 
+          ifelse(
+            lubridate::month(data_final) < 10,
+            paste0("0", lubridate::month(data_final)),
+            lubridate::month(data_final)
+            )
+          )
+        ),
+      x        = NULL,
+      y        = NULL,
+      caption  = "**Dados:** FGV e IBGE | **Elaboração:** Fernando da Silva"
+    ) +
+    ggplot2::theme_light() +
+    ggplot2::theme(
+      legend.position   = "bottom",
+      legend.key        = ggplot2::element_blank(),
+      legend.key.width  = ggplot2::unit(1, "cm"),
+      legend.key.height = ggplot2::unit(0.5, "cm"),
+      legend.text       = ggplot2::element_text(size = 12),  
+      plot.title        = ggtext::element_markdown(size = 30, colour = colors["blue"]),
+      plot.subtitle     = ggplot2::element_text(size = 16),
+      plot.caption      = ggtext::element_markdown(size = 12),
+      axis.text         = ggplot2::element_text(size = 12)
+    )
+
+})
+```
+
