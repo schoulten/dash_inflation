@@ -13,6 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      RSCONNECT_USER: ${{ secrets.dash_update }}
+      RSCONNECT_TOKEN: ${{ secrets.dash_update }}
+      RSCONNECT_SECRET: ${{ secrets.dash_update }}
       RENV_PATHS_ROOT: ~/.local/share/renv
     steps:
       - uses: actions/checkout@v2
