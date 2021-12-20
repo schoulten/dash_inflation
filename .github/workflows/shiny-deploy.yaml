@@ -23,14 +23,6 @@ jobs:
         with:
           use-public-rspm: true
 
-      - name: Install curl
-        run: sudo apt -y install libcurl4-openssl-dev
-
-      - name: Temp install RCurl
-        run: |
-          install.packages('RCurl', repos='https://cloud.r-project.org')
-        shell: Rscript {0}
-
       - uses: r-lib/actions/setup-renv@v2
 
       - name: Install rsconnect
