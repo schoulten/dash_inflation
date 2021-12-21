@@ -13,9 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      RSCONNECT_USER: ${{ secrets.dash_update }}
-      RSCONNECT_TOKEN: ${{ secrets.dash_update }}
-      RSCONNECT_SECRET: ${{ secrets.dash_update }}
       RENV_PATHS_ROOT: ~/.local/share/renv
     steps:
       - uses: actions/checkout@v2
@@ -42,7 +39,7 @@ jobs:
 
       - name: Authorize and deploy app
         run: |
-          rsconnect::setAccountInfo($RSCONNECT_USER, $RSCONNECT_TOKEN, $RSCONNECT_SECRET)
+          rsconnect::setAccountInfo(name=${{secrets.RSCONNECT_USER}}, token=${{secrets.RSCONNECT_TOKEN}}, secret=${{secrets.RSCONNECT_SECRET}})
           rsconnect::deployDoc("dash_inflation.Rmd", forceUpdate = TRUE)
         shell: Rscript {0}
 
