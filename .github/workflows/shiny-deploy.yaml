@@ -48,8 +48,8 @@ jobs:
 
       - name: Commit results
         run: |
-          git config --local user.name "$GITHUB_ACTOR"
-          git config --local user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git config --local user.name "GitHub Actions"
+          git config --local user.email "actions@github.com"
           git add .
           git commit -m "Update data and deploy shiny app"" || echo "No changes to commit"
           git push origin || echo "No changes to commit"
