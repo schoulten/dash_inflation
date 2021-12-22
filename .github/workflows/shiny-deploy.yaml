@@ -42,7 +42,7 @@ jobs:
 
       - name: Authorize and deploy app
         run: |
-          rsconnect::setAccountInfo(name=${{secrets.RSCONNECT_USER}}, token=${{secrets.RSCONNECT_TOKEN}}, secret=${{secrets.RSCONNECT_SECRET}})
+          rsconnect::setAccountInfo(name='${{ secrets.RSCONNECT_USER }}', token='${{ secrets.RSCONNECT_TOKEN }}', secret='${{ secrets.RSCONNECT_SECRET }}')
           rsconnect::deployDoc("dash_inflation.Rmd", forceUpdate = TRUE)
         shell: Rscript {0}
 
