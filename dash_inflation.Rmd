@@ -27,7 +27,6 @@ library(ggplot2)
 library(readr)
 library(lubridate)
 library(dplyr)
-library(stringr)
 library(forcats)
 library(tidyr)
 library(scales)
@@ -48,6 +47,22 @@ colors <- c(
   green  = "#224f20",
   purple = "#5f487c",
   black  = "black"
+)
+
+# Nomes de exibição de meses abreviados
+abbr_months <- c(
+  "1" = "Jan", 
+  "2" = "Fev", 
+  "3" = "Mar",
+  "4" = "Abr",
+  "5" = "Mai",
+  "6" = "Jun", 
+  "7" = "Jul",
+  "8" = "Ago", 
+  "9" = "Set", 
+  "10" = "Out",
+  "11" = "Nov",
+  "12" = "Dez"
 )
 ```
 
@@ -168,8 +183,9 @@ shiny::renderPlot({
   seas_pattern <- tbl_inflation %>%
     dplyr::group_by(
       variable,
-      date_m = lubridate::month(.data$date, label = TRUE) %>% # , locale = "pt_BR.utf8"
-        stringr::str_to_sentence(locale = "br") %>%
+      date_m = lubridate::month(.data$date) %>% 
+        as.character() %>% 
+        dplyr::recode(!!!abbr_months) %>% 
         forcats::as_factor()
       ) %>%
     dplyr::filter(date >= data_inicial & date <= data_final) %>%
@@ -186,8 +202,9 @@ shiny::renderPlot({
           lubridate::year(.data$date) == data_compara
           ) %>% 
         dplyr::mutate(
-          date = lubridate::month(.data$date, label = TRUE) %>% # , locale = "pt_BR.utf8"
-            stringr::str_to_sentence(locale = "br") %>%
+          date = lubridate::month(.data$date) %>% 
+            as.character() %>% 
+            dplyr::recode(!!!abbr_months) %>% 
             forcats::as_factor()
           ),
       by = c("variable", "date")
