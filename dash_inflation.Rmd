@@ -145,9 +145,6 @@ Row
 ### Sazonalidade mensal {.no-title}
 
 ```{r}
-# Ver locales do shinyapps
-system("locale -a", intern = TRUE)
-
 # Gerar gráfico dinâmico (se atualiza conforme o input da sidebar)
 shiny::renderPlot({
   
