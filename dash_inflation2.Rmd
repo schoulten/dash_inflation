@@ -168,7 +168,7 @@ shiny::renderPlot({
   seas_pattern <- tbl_inflation %>%
     dplyr::group_by(
       variable,
-      date_m = lubridate::month(.data$date, label = TRUE, locale = "pt_BR.utf8") %>% 
+      date_m = lubridate::month(.data$date, label = TRUE) %>% # , locale = "pt_BR.utf8"
         stringr::str_to_sentence(locale = "br") %>%
         forcats::as_factor()
       ) %>%
@@ -186,7 +186,7 @@ shiny::renderPlot({
           lubridate::year(.data$date) == data_compara
           ) %>% 
         dplyr::mutate(
-          date = lubridate::month(.data$date, label = TRUE, locale = "pt_BR.utf8") %>% 
+          date = lubridate::month(.data$date, label = TRUE) %>% # , locale = "pt_BR.utf8"
             stringr::str_to_sentence(locale = "br") %>%
             forcats::as_factor()
           ),

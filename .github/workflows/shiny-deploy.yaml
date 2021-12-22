@@ -43,7 +43,7 @@ jobs:
       - name: Authorize and deploy app
         run: |
           rsconnect::setAccountInfo(name='${{ secrets.RSCONNECT_USER }}', token='${{ secrets.RSCONNECT_TOKEN }}', secret='${{ secrets.RSCONNECT_SECRET }}')
-          rsconnect::deployDoc("dash_inflation.Rmd", forceUpdate = TRUE)
+          rsconnect::deployApp(forceUpdate = TRUE)
         shell: Rscript {0}
 
       - name: Commit results
@@ -51,5 +51,5 @@ jobs:
           git config --local user.name "GitHub Actions"
           git config --local user.email "actions@github.com"
           git add .
-          git commit -m "Update data and deploy shiny app"" || echo "No changes to commit"
+          git commit -m "Update data and deploy shiny app" || echo "No changes to commit"
           git push origin || echo "No changes to commit"
