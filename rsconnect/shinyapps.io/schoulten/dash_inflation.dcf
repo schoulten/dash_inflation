@@ -5,7 +5,7 @@ account: schoulten
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 5320083
-bundleId: 5407854
+bundleId: 5409299
 url: https://schoulten.shinyapps.io/dash_inflation/
-when: 1640394408.47269
-lastSyncTime: 1640394408.4727
+when: 1640481116.61962
+lastSyncTime: 1640481116.61964
