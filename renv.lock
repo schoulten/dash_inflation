@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.0.3",
+    "Version": "4.1.2",
     "Repositories": [
       {
         "Name": "CRAN",
@@ -32,10 +32,10 @@
     },
     "Hmisc": {
       "Package": "Hmisc",
-      "Version": "4.4-2",
+      "Version": "4.7-0",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "66458e906b2112a8b1639964efd77d7c"
+      "Hash": "d6b38998466629deb0346b1feb594283"
     },
     "MASS": {
       "Package": "MASS",
