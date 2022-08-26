@@ -70,7 +70,7 @@ abbr_months <- c(
 Row {.sidebar}
 -----------------------------------------------------------------------
 
-Ferramenta analítica para diagnosticar o comportamento histórico da inflação brasileira, medida pelos principais indicadores de conjuntura econômica.
+Dashboard analítica para diagnosticar o comportamento histórico da inflação brasileira, medida pelos principais indicadores de conjuntura econômica. Utilize as opções abaixo para customização da análise.
 
 ```{r inputs}
 # Cria input do tipo "lista de caixas de seleção" com índices de preços como opções
