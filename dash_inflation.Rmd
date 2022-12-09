@@ -37,6 +37,8 @@ library(feasts)
 library(Hmisc)
 
 # Carregar dados públicos previamente importados via pacotes
+shiny::addResourcePath(prefix = "data", directoryPath = "data")
+shiny::addResourcePath(prefix = "inst", directoryPath = "inst")
 tbl_inflation <- readr::read_rds("data/tbl_inflation.rds")
 
 # Objetos úteis na dashboard
