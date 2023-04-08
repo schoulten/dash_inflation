@@ -1,10 +1,11 @@
 
 # Pacotes -----------------------------------------------------------------
 
+# Carregar pacotes
 library(GetBCBData)
-library(magrittr)
 library(dplyr)
 library(readr)
+library(tidyr)
 
 
 # Importar dados ----------------------------------------------------------
@@ -34,8 +35,8 @@ if (dplyr::n_distinct(raw_data$series.name) != length(vars_inflation)) {
 
 # Tratar dados ------------------------------------------------------------
 
-tbl_inflation <- raw_data %>%
-  dplyr::as_tibble() %>%
+tbl_inflation <- raw_data |>
+  dplyr::as_tibble() |>
   dplyr::select(
     "date"     = "ref.date",
     "variable" = "series.name",
