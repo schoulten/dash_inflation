@@ -154,7 +154,7 @@ shiny::checkboxGroupInput(
 
 
 Dados: FGV e IBGE<br>
-Elaboração: Fernando da Silva
+Elaboração: [Fernando da Silva](https://fortietwo.com/)
 
 
 Row
