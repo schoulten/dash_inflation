@@ -27,7 +27,7 @@ raw_data <- GetBCBData::gbcbd_get_series(
   )
 
 # Verificar se há dados faltando
-if(dplyr::n_distinct(raw_data$series.name) != length(vars_inflation)){
+if (dplyr::n_distinct(raw_data$series.name) != length(vars_inflation)) {
   stop("Missing variables, please check ETL process.")
 }
 
@@ -40,7 +40,8 @@ tbl_inflation <- raw_data %>%
     "date"     = "ref.date",
     "variable" = "series.name",
     "mom"      = "value"
-    )
+    ) |>
+  tidyr::drop_na()
 
 
 # Salvar dados ------------------------------------------------------------
