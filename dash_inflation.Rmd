@@ -183,52 +183,52 @@ shiny::renderPlot({
   
   
   # Script para calcular padrão sazonal mensal conforme inputs do usuário: mediana e IQR
-  seas_pattern <- tbl_inflation %>%
+  seas_pattern <- tbl_inflation |>
     dplyr::group_by(
       variable,
-      date_m = lubridate::month(.data$date) %>% 
-        as.character() %>% 
-        dplyr::recode(!!!abbr_months) %>% 
+      date_m = lubridate::month(.data$date) |> 
+        as.character() |> 
+        dplyr::recode(!!!abbr_months) |> 
         forcats::as_factor()
-      ) %>%
-    dplyr::filter(date >= data_inicial & date <= data_final) %>%
+      ) |>
+    dplyr::filter(date >= data_inicial & date <= data_final) |>
     dplyr::summarise(
       iqr     = ggplot2::median_hilow(mom, conf.int = 0.5),
       .groups = "drop"
-    ) %>%
-    tidyr::unnest(cols = iqr) %>% 
-    dplyr::rename("median" = "y", "date" = "date_m") %>% 
+    ) |>
+    tidyr::unnest(cols = iqr) |> 
+    dplyr::rename("median" = "y", "date" = "date_m") |> 
     dplyr::left_join(
-      tbl_inflation %>%
+      tbl_inflation |>
         dplyr::filter(
           date >= data_inicial & date <= data_final,
           lubridate::year(.data$date) == data_compara
-          ) %>% 
+          ) |> 
         dplyr::mutate(
-          date = lubridate::month(.data$date) %>% 
-            as.character() %>% 
-            dplyr::recode(!!!abbr_months) %>% 
+          date = lubridate::month(.data$date) |> 
+            as.character() |> 
+            dplyr::recode(!!!abbr_months) |> 
             forcats::as_factor()
           ),
       by = c("variable", "date")
-      ) %>%
+      ) |>
     tidyr::pivot_longer(
       cols      = -c(variable, date, ymin, ymax), 
       names_to  = "measure", 
       values_to = "value"
-      ) %>%
+      ) |>
     dplyr::mutate(
       measure = dplyr::recode(
         measure,
         "median" = "Mediana",
         "mom"    = as.character(data_compara)
       )
-    ) %>% 
+    ) |> 
     dplyr::filter(variable == indicador)
   
   
   # Gerar gráfico dinâmico
-  seas_pattern %>%
+  seas_pattern |>
     ggplot2::ggplot() +
     ggplot2::aes(x = date, y = value, color = measure, shape = measure, group = measure) +
     ggplot2::geom_hline(yintercept = 0) +
@@ -333,24 +333,24 @@ shiny::renderPlot({
   
   
   # Script para obter componentes da série e tratamento de dados
-  ts_components <- tbl_inflation %>% 
-    dplyr::filter(date >= data_inicial & date <= data_final) %>%
-    dplyr::mutate(date = tsibble::yearmonth(date)) %>%
-    tsibble::as_tsibble(index = date, key = variable) %>% 
-    fabletools::model(feasts::STL(mom, robust = TRUE)) %>%
-    fabletools::components() %>% 
-    dplyr::as_tibble() %>% 
-    dplyr::group_by(variable) %>% 
+  ts_components <- tbl_inflation |> 
+    dplyr::filter(date >= data_inicial & date <= data_final) |>
+    dplyr::mutate(date = tsibble::yearmonth(date)) |>
+    tsibble::as_tsibble(index = date, key = variable) |> 
+    fabletools::model(feasts::STL(mom, robust = TRUE)) |>
+    fabletools::components() |> 
+    dplyr::as_tibble() |> 
+    dplyr::group_by(variable) |> 
     dplyr::mutate(
       mean = mean(mom, na.rm = TRUE),
       date = lubridate::as_date(.data$date)
-      ) %>% 
-    dplyr::select(-c(.data$`.model`, .data$`remainder`, .data$`season_adjust`)) %>% 
+      ) |> 
+    dplyr::select(-c(.data$`.model`, .data$`remainder`, .data$`season_adjust`)) |> 
     tidyr::pivot_longer(
       cols      = -c(date, variable), 
       names_to  = "measure",
       values_to = "value"
-    ) %>% 
+    ) |> 
     dplyr::mutate(
       colors = dplyr::case_when(
         measure == "mom" ~ unname(colors["black"]),
@@ -363,14 +363,14 @@ shiny::renderPlot({
         measure == "trend" ~ "Tendência",
         measure == "season_year" ~ "Sazonalidade",
         measure == "mean" ~ "Média"
-        ) %>% 
+        ) |> 
         factor(levels = c("% a.m.", "Tendência", "Sazonalidade", "Média")),
-      ) %>%
+      ) |>
     dplyr::filter(variable == indicador, measure %in% componentes)
   
   
   # Gerar gráfico dinâmico
-  ts_components %>% 
+  ts_components |> 
     ggplot2::ggplot() +
     ggplot2::aes(x = date, y = value, color = colors, group = measure) +
     ggplot2::geom_hline(yintercept = 0, linetype = "dashed") +
