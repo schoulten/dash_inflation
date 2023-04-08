@@ -5,7 +5,6 @@ library(GetBCBData)
 library(magrittr)
 library(dplyr)
 library(readr)
-library()
 
 
 # Importar dados ----------------------------------------------------------
