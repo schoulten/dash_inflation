@@ -19,7 +19,7 @@ runtime: shiny
 $('.navbar-logo').wrap('<a href="https://fortietwo.com/" target=_blank>');
 </script>
 
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="inst/css/styles.css">
 
 ```{r global, include=FALSE}
 # Carregar pacotes
