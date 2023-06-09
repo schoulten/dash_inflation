@@ -28,7 +28,7 @@ raw_data <- GetBCBData::gbcbd_get_series(
   )
 
 # Verificar se há variáveis faltando
-if (dplyr::n_distinct(tbl_inflation2$variable) != length(vars_inflation)) {
+if (dplyr::n_distinct(raw_data$series.name) != length(vars_inflation)) {
   stop("Missing variables, please check ETL process.")
 }
 
