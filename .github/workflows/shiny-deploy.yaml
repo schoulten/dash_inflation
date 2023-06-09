@@ -49,8 +49,18 @@ jobs:
 
       - name: Authorize and deploy app
         run: |
-          rsconnect::setAccountInfo(name='${{ secrets.RSCONNECT_USER }}', token='${{ secrets.RSCONNECT_TOKEN }}', secret='${{ secrets.RSCONNECT_SECRET }}')
-          rsconnect::deployApp(forceUpdate = TRUE)
+          git_status <- system(command = "git status", intern = TRUE) |>
+            paste(collapse = " ")
+          if (grepl(pattern = "nothing to commit, working tree clean", x = git_status)) {
+            message("Working tree is clean. Skipping deployment.")
+          } else {
+            rsconnect::setAccountInfo(
+              name = '${{ secrets.RSCONNECT_USER }}',
+              token = '${{ secrets.RSCONNECT_TOKEN }}',
+              secret = '${{ secrets.RSCONNECT_SECRET }}'
+              )
+            rsconnect::deployApp(forceUpdate = TRUE)
+          }
         shell: Rscript {0}
 
       - name: Commit results
