@@ -176,8 +176,8 @@ shiny::renderPlot({
   
   
   # Valores dos inputs salvos em objetos auxiliar, por conveniência
-  data_inicial <- lubridate::floor_date(input$data[1])
-  data_final <- lubridate::floor_date(input$data[2])
+  data_inicial <- lubridate::floor_date(input$data[1]) |> lubridate::as_date()
+  data_final <- lubridate::floor_date(input$data[2]) |> lubridate::as_date()
   data_compara <- input$ano
   indicador <- input$variavel
   
