@@ -18,9 +18,9 @@ jobs:
       RSCONNECT_SECRET: ${{ secrets.RSCONNECT_SECRET }}
       RENV_PATHS_ROOT: ~/.local/share/renv
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: ~/.local/share/renv
           key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
