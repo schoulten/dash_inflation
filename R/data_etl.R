@@ -27,8 +27,8 @@ raw_data <- GetBCBData::gbcbd_get_series(
   use.memoise = FALSE
   )
 
-# Verificar se há dados faltando
-if (dplyr::n_distinct(raw_data$series.name) != length(vars_inflation)) {
+# Verificar se há variáveis faltando
+if (dplyr::n_distinct(tbl_inflation2$variable) != length(vars_inflation)) {
   stop("Missing variables, please check ETL process.")
 }
 
@@ -43,6 +43,14 @@ tbl_inflation <- raw_data |>
     "mom"      = "value"
     ) |>
   tidyr::drop_na()
+
+# Verificar se há dados faltando
+if (file.exists("data/tbl_inflation.rds")) {
+  last_data <- readr::read_rds("data/tbl_inflation.rds")
+  if (nrow(tbl_inflation) < nrow(last_data)) {
+    stop("Missing data, please check ETL process.")
+  }
+}
 
 
 # Salvar dados ------------------------------------------------------------
